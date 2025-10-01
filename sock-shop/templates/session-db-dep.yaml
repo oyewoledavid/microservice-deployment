@@ -7,7 +7,7 @@ metadata:
     name: session-db
   namespace: sock-shop
 spec:
-  replicas: 1
+  replicas: {{ .Values.session.replicaCount }}
   selector:
     matchLabels:
       name: session-db
@@ -23,7 +23,7 @@ spec:
         image: redis:alpine
         ports:
         - name: redis
-          containerPort: 6379
+          containerPort: {{ .Values.session.service.targetPort }}
         securityContext:
           capabilities:
             drop:

@@ -38,3 +38,7 @@ After running terraform apply
  - run `helm install socks-shop ./sock-shop --dry-run` to check if your setups are correct
 
 
+
+cluster_endpoint = "https://248E1E1F57F08FFA9B3BB9161224E3DB.gr7.us-east-1.eks.amazonaws.com"
+cluster_name = "socks-shop-cluster"
+cluster_security_group_id = "sg-070583ae4f3098fb7"

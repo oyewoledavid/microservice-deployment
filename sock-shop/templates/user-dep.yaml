@@ -1,36 +1,37 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: catalogue
+  name: user
   labels:
-    name: catalogue
+    name: user
   namespace: sock-shop
 spec:
-  replicas: 1
+  replicas: {{ .Values.user.replicaCount }}
   selector:
     matchLabels:
-      name: catalogue
+      name: user
   template:
     metadata:
       labels:
-        name: catalogue
+        name: user
     spec:
       containers:
-      - name: catalogue
-        image: weaveworksdemos/catalogue:0.3.5
-        command: ["/app"]
-        args:
-        - -port=80
+      - name: user
+        image: "{{ .Values.user.image.repository }}:{{ .Values.user.image.tag }}"
+        imagePullPolicy: {{ .Values.user.image.pullPolicy }}
         resources:
           limits:
-            cpu: 200m
-            memory: 200Mi
+            cpu: {{ .Values.user.resources.limits.cpu }}
+            memory: {{ .Values.user.resources.limits.memory }}
           requests:
-            cpu: 100m
-            memory: 100Mi
+            cpu: {{ .Values.user.resources.requests.cpu }}
+            memory: {{ .Values.user.resources.requests.memory }}
         ports:
-        - containerPort: 80
+        - containerPort: {{ .Values.user.service.targetPort }}
+          name: http
+        env:
+        - name: mongo
+          value: user-db:27017
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
@@ -43,13 +44,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 80
+            port: {{ .Values.user.service.port }}
           initialDelaySeconds: 300
           periodSeconds: 3
         readinessProbe:
           httpGet:
             path: /health
-            port: 80
+            port: {{ .Values.user.service.port }}
           initialDelaySeconds: 180
           periodSeconds: 3
       nodeSelector:

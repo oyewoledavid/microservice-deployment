@@ -17,3 +17,156 @@ frontend:
     port: 80
     targetPort: 8079
     nodePort: 30001
+
+# CARTS
+carts:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/carts
+    tag: "0.4.8"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 300m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 200Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80
+
+# CATALOGUE
+catalogue:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/catalogue
+    tag: "0.3.5"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80
+
+# ORDERS
+orders:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/orders
+    tag: "0.4.7"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 300Mi
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+#PAYMENT
+payment:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/payment
+    tag: "0.4.3"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80
+
+# QUEUE MASTER
+queueMaster:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/queue-master
+    tag: "0.3.1"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 300m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 300Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80
+
+# RABBITMQ
+rabbitmq:
+  replicaCount: 1 
+  image:
+    repository: rabbitmq
+    tag: "3.6.8-management"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5672
+    targetPort: 5672
+
+# SESSION
+session:
+  replicaCount: 1
+  service:
+    type: ClusterIP  
+    port: 6379
+    targetPort: 6379
+
+# SHIPPING
+shipping:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/shipping
+    tag: "0.4.8"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 300m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 300Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80
+
+# USER
+user:
+  replicaCount: 1
+  image:
+    repository: weaveworksdemos/user
+    tag: "0.4.7"
+    pullPolicy: IfNotPresent
+  resources:
+    limits: 
+      cpu: 300m
+      memory: 200Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+  service:
+    type: ClusterIP  
+    port: 80
+    targetPort: 80

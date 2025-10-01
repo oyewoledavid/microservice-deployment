@@ -9,7 +9,7 @@ metadata:
 spec:
   ports:
     # the port that this service should serve on
-  - port: 6379
-    targetPort: 6379
+  - port: {{ .Values.session.service.port }}
+    targetPort: {{ .Values.session.service.targetPort }}
   selector:
     name: session-db

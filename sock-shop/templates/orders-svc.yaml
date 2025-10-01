@@ -1,18 +1,16 @@
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: user
+  name: orders
   annotations:
         prometheus.io/scrape: 'true'
   labels:
-    name: user
+    name: orders
   namespace: sock-shop
 spec:
   ports:
     # the port that this service should serve on
-  - port: 80
-    targetPort: 80
+  - port: {{ .Values.orders.service.port }}
+    targetPort: {{ .Values.orders.service.targetPort }}
   selector:
-    name: user
-
+    name: orders

@@ -6,6 +6,7 @@ metadata:
     prometheus.io/scrape: "true"
   labels:
     name: frontend
+  namespace: sock-shop
 spec:
   type: {{ .Values.frontend.service.type }}
   ports:

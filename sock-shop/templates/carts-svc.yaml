@@ -1,17 +1,16 @@
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: payment
+  name: carts
   annotations:
         prometheus.io/scrape: 'true'
   labels:
-    name: payment
+    name: carts
   namespace: sock-shop
 spec:
   ports:
     # the port that this service should serve on
-  - port: 80
-    targetPort: 80
+  - port: {{ .Values.carts.service.port }}
+    targetPort: {{ .Values.carts.service.targetPort }}
   selector:
-    name: payment
+    name: carts

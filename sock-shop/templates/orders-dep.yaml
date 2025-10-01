@@ -1,4 +1,3 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +6,7 @@ metadata:
     name: orders
   namespace: sock-shop
 spec:
-  replicas: 1
+  replicas: {{ .Values.orders.replicaCount }}
   selector:
     matchLabels:
       name: orders
@@ -18,19 +17,19 @@ spec:
     spec:
       containers:
       - name: orders
-        image: weaveworksdemos/orders:0.4.7
+        image: "{{ .Values.orders.image.repository }}:{{ .Values.orders.image.tag }}"
         env:
          - name: JAVA_OPTS
            value: -Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false
         resources:
           limits:
-            cpu: 500m
-            memory: 500Mi
+            cpu: {{ .Values.orders.resources.limits.cpu }}
+            memory: {{ .Values.orders.resources.limits.memory }}
           requests:
             cpu: 100m
             memory: 300Mi
         ports:
-        - containerPort: 80
+        - containerPort: {{ .Values.orders.service.targetPort }}
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001

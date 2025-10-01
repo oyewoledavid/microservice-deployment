@@ -1,4 +1,3 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +6,7 @@ metadata:
     name: queue-master
   namespace: sock-shop
 spec:
-  replicas: 1
+  replicas: {{ .Values.queueMaster.replicaCount }}
   selector:
     matchLabels:
       name: queue-master
@@ -18,18 +17,19 @@ spec:
     spec:
       containers:
       - name: queue-master
-        image: weaveworksdemos/queue-master:0.3.1
+        image: "{{ .Values.queueMaster.image.repository }}:{{ .Values.queueMaster.image.tag }}"
+        imagePullPolicy: {{ .Values.queueMaster.image.pullPolicy }}
         env:
          - name: JAVA_OPTS
            value: -Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false
         resources:
           limits:
-            cpu: 300m
-            memory: 500Mi
+            cpu: {{ .Values.queueMaster.resources.limits.cpu }}
+            memory: {{ .Values.queueMaster.resources.limits.memory }}
           requests:
-            cpu: 100m
-            memory: 300Mi
+            cpu: {{ .Values.queueMaster.resources.requests.cpu }}
+            memory: {{ .Values.queueMaster.resources.requests.memory }}
         ports:
-        - containerPort: 80
+        - containerPort: {{ .Values.queueMaster.service.targetPort }}
       nodeSelector:
         beta.kubernetes.io/os: linux

@@ -1,4 +1,3 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +6,7 @@ metadata:
     name: shipping
   namespace: sock-shop
 spec:
-  replicas: 1
+  replicas: {{ .Values.shipping.replicaCount }}
   selector:
     matchLabels:
       name: shipping
@@ -18,7 +17,8 @@ spec:
     spec:
       containers:
       - name: shipping
-        image: weaveworksdemos/shipping:0.4.8
+        image: "{{ .Values.shipping.image.repository }}:{{ .Values.shipping.image.tag }}"
+        imagePullPolicy: {{ .Values.shipping.image.pullPolicy }}
         env:
          - name: ZIPKIN
            value: zipkin.jaeger.svc.cluster.local
@@ -26,13 +26,13 @@ spec:
            value: -Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false
         resources:
           limits:
-            cpu: 300m
-            memory: 500Mi
+            cpu: {{ .Values.shipping.resources.limits.cpu }}
+            memory: {{ .Values.shipping.resources.limits.memory }}
           requests:
-            cpu: 100m
-            memory: 300Mi
+            cpu: {{ .Values.shipping.resources.requests.cpu }}
+            memory: {{ .Values.shipping.resources.requests.memory }}
         ports:
-        - containerPort: 80
+        - containerPort: {{ .Values.shipping.service.targetPort }}
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
