@@ -13,7 +13,7 @@ frontend:
       cpu: 100m
       memory: 300Mi
   service:
-    type: NodePort  
+    type: ClusterIP 
     port: 80
     targetPort: 8079
     nodePort: 30001

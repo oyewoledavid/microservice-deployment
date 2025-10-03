@@ -36,9 +36,13 @@ After running terraform apply
  - run `kubectl config set-context --current --namespace=sock-shop` to set as default namespace
  - run `helm create sock-shop` to create the helm project, delete the unnecessary files and configure values.yaml, deployment.yaml, service.yaml, ingress.yaml with the neccesary configurations
  - run `helm install socks-shop ./sock-shop --dry-run` to check if your setups are correct
+ - run `helm list -n kube-system` to check if AWS Load BAlancer is deployed and run `kubectl get pods -n kube-system | grep aws-load-balancer-controller` to see the load balancer running
 
 
 
 cluster_endpoint = "https://248E1E1F57F08FFA9B3BB9161224E3DB.gr7.us-east-1.eks.amazonaws.com"
 cluster_name = "socks-shop-cluster"
 cluster_security_group_id = "sg-070583ae4f3098fb7"
+
+
+https://oidc.eks.us-east-1.amazonaws.com/id/465E7D5A5423A5D783991B4D7C466F35

@@ -35,3 +35,86 @@ module "vpc" {
   single_nat_gateway = true
   enable_dns_hostnames = true
 }
+
+# --- EKS Cluster Data ---
+data "aws_eks_cluster" "this" {
+  name = module.eks.cluster_name
+}
+
+data "aws_eks_cluster_auth" "this" {
+  name = module.eks.cluster_name
+}
+
+# OIDC Provider
+data "aws_iam_openid_connect_provider" "oidc" {
+  arn = module.eks.oidc_provider_arn
+}
+
+# --- ALB Controller IAM Policy ---
+resource "aws_iam_policy" "alb_ingress" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "Policy for ALB Ingress Controller"
+  policy      = file("${path.module}/iam_policy.json")
+}
+
+# --- ALB Controller IAM Role ---
+resource "aws_iam_role" "alb_ingress" {
+  name               = "AmazonEKSLoadBalancerControllerRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.oidc.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(data.aws_iam_openid_connect_provider.oidc.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# --- Attach Policy to Role ---
+resource "aws_iam_role_policy_attachment" "alb_attach" {
+  role       = aws_iam_role.alb_ingress.name
+  policy_arn = aws_iam_policy.alb_ingress.arn
+}
+
+# --- ServiceAccount for ALB Controller ---
+resource "kubernetes_service_account" "alb_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.alb_ingress.arn
+    }
+  }
+}
+
+# --- Helm Release for ALB Controller ---
+resource "helm_release" "alb_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  set = [
+    {
+      name  = "clusterName"
+      value = module.eks.cluster_name
+    },
+    {
+      name  = "serviceAccount.create"
+      value = "false"
+    },
+    {
+      name  = "serviceAccount.name"
+      value = kubernetes_service_account.alb_controller.metadata[0].name
+    }
+  ]
+}
