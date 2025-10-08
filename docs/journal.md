@@ -83,8 +83,7 @@ To verify that external dns created record in route53
 At this point your app should be available on http.
 
 ### Let’s Encrypt (cert-manager) setup for Https
-
-acm_certificate_arn = "arn:aws:acm:us-east-1:354767057562:certificate/524f102a-0910-40aa-8ffa-6714ca0f301c"
+acm_certificate_arn = "arn:aws:acm:us-east-1:354767057562:certificate/c52b74bb-b59c-40a0-ad51-3b2532c3d191""
 
 ## Updating Helm release with SSL certificate
 
@@ -112,8 +111,35 @@ Check the application URL
 Test HTTPS access (once DNS propagates)
 `curl -I https://sock.blessedc.org`
 
-
+```bash
 aws elbv2 describe-listeners \
   --load-balancer-arn <YOUR_ALB_ARN> \
   --region us-east-1 \
   --query 'Listeners[*].{Port:Port,Protocol:Protocol,Certificates:Certificates}'
+```
+
+## Monitoring
+- Create a wildcard cert for `.sock.blessedc.org` this will also cover sock.blessedc.org will we use this cert for grafana.sock.blessedc.org and prometheus.blessedc.org later and any other we want.
+### Deploy grafana and prometheus using helm
+- create monitoring namespace run `kubectl create namespace monitoring`
+- Add and Update 
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
+- Create monitoring value file
+- install the monitoring stack 
+```bash
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  -f monitoring-values.yaml
+```
+- create grafana and prometheus ingress file
+- Apply The ingress files
+```bash
+kubectl apply -f grafana-ingress.yaml
+kubectl apply -f prometheus-ingress.yaml
+```
+- run `kubectl get ingress -n monitoring` to confirm the ingress
+- run `kubectl logs -n external-dns deploy/external-dns | grep grafana.sock.blessedc.org -A3` to check external DNS has created record
+Grafana and prometheus will not be available via HTTPS on grafana.sock.blessedc.org and prometheus.sock.blessedc.org respectively

@@ -161,6 +161,59 @@ cleanup_security_groups() {
     fi
 }
 
+# Function to clean up Route53 records
+cleanup_route53_records() {
+    log_info "Checking for Route53 hosted zones to clean up..."
+    
+    # Look for hosted zones that might be managed by Terraform
+    local zone_ids=$(aws route53 list-hosted-zones --region $REGION --query 'HostedZones[?contains(Name, `sock.blessedc.org`)].Id' --output text 2>/dev/null | sed 's|/hostedzone/||g')
+    
+    if [ -n "$zone_ids" ] && [ "$zone_ids" != "None" ]; then
+        for zone_id in $zone_ids; do
+            log_info "Cleaning up records in hosted zone: $zone_id"
+            
+            # Get all records except NS and SOA
+            local records=$(aws route53 list-resource-record-sets --hosted-zone-id "$zone_id" --query 'ResourceRecordSets[?Type!=`NS` && Type!=`SOA`]' --output json 2>/dev/null)
+            
+            if [ "$records" != "[]" ] && [ -n "$records" ]; then
+                log_info "Found records that need to be deleted. Removing them..."
+                
+                # Delete each record
+                echo "$records" | jq -c '.[]' | while read -r record; do
+                    local name=$(echo "$record" | jq -r '.Name')
+                    local type=$(echo "$record" | jq -r '.Type')
+                    
+                    log_info "Deleting record: $name ($type)"
+                    
+                    # Create change batch for deletion
+                    local change_batch='{
+                        "Changes": [
+                            {
+                                "Action": "DELETE",
+                                "ResourceRecordSet": '"$record"'
+                            }
+                        ]
+                    }'
+                    
+                    if aws route53 change-resource-record-sets --hosted-zone-id "$zone_id" --change-batch "$change_batch" --region $REGION >/dev/null 2>&1; then
+                        log_success "Successfully deleted record: $name"
+                    else
+                        log_warning "Failed to delete record: $name (may already be gone)"
+                    fi
+                done
+                
+                # Wait for changes to propagate
+                log_info "Waiting for DNS changes to propagate..."
+                sleep 15
+            else
+                log_info "No records to clean up in hosted zone: $zone_id"
+            fi
+        done
+    else
+        log_info "No Route53 hosted zones found for cleanup"
+    fi
+}
+
 # Function to run terraform destroy
 terraform_destroy() {
     log_info "Running Terraform destroy..."
@@ -246,6 +299,9 @@ main() {
         cleanup_load_balancers "$vpc_id"
         cleanup_network_interfaces "$vpc_id"
         cleanup_security_groups "$vpc_id"
+        
+        # Clean up Route53 records that prevent hosted zone deletion
+        cleanup_route53_records
         
         # Run terraform destroy
         terraform_destroy
