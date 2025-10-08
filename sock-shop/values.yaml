@@ -170,3 +170,7 @@ user:
     type: ClusterIP  
     port: 80
     targetPort: 80
+
+# INGRESS
+ingress:
+  certificateArn: ""

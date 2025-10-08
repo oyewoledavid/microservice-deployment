@@ -10,14 +10,20 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
 
   eks_managed_node_groups = {
-    default = {
+    socks_shop_nodes = {
       desired_size   = var.desired_capacity
       min_size       = var.min_capacity
       max_size       = var.max_capacity
       instance_types = [var.node_instance_type]
     }
   }
+
   enable_cluster_creator_admin_permissions = true
+
+  # Ensure VPC is created before EKS
+  depends_on = [
+    module.vpc
+  ]
 }
 
 module "vpc" {
@@ -31,23 +37,35 @@ module "vpc" {
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 
-  enable_nat_gateway = true
-  single_nat_gateway = true
-  enable_dns_hostnames = true
+  enable_nat_gateway     = true
+  single_nat_gateway     = true
+  enable_dns_hostnames   = true
 }
 
 # --- EKS Cluster Data ---
 data "aws_eks_cluster" "this" {
   name = module.eks.cluster_name
+
+  depends_on = [
+    module.eks
+  ]
 }
 
 data "aws_eks_cluster_auth" "this" {
   name = module.eks.cluster_name
+
+  depends_on = [
+    module.eks
+  ]
 }
 
 # OIDC Provider
 data "aws_iam_openid_connect_provider" "oidc" {
   arn = module.eks.oidc_provider_arn
+
+  depends_on = [
+    module.eks
+  ]
 }
 
 # --- ALB Controller IAM Policy ---
@@ -77,12 +95,21 @@ resource "aws_iam_role" "alb_ingress" {
       }
     ]
   })
+
+  depends_on = [
+    data.aws_iam_openid_connect_provider.oidc
+  ]
 }
 
 # --- Attach Policy to Role ---
 resource "aws_iam_role_policy_attachment" "alb_attach" {
   role       = aws_iam_role.alb_ingress.name
   policy_arn = aws_iam_policy.alb_ingress.arn
+
+  depends_on = [
+    aws_iam_role.alb_ingress,
+    aws_iam_policy.alb_ingress
+  ]
 }
 
 # --- ServiceAccount for ALB Controller ---
@@ -94,6 +121,11 @@ resource "kubernetes_service_account" "alb_controller" {
       "eks.amazonaws.com/role-arn" = aws_iam_role.alb_ingress.arn
     }
   }
+
+  depends_on = [
+    module.eks,
+    aws_iam_role_policy_attachment.alb_attach
+  ]
 }
 
 # --- Helm Release for ALB Controller ---
@@ -116,5 +148,10 @@ resource "helm_release" "alb_controller" {
       name  = "serviceAccount.name"
       value = kubernetes_service_account.alb_controller.metadata[0].name
     }
+  ]
+
+  depends_on = [
+    module.eks,
+    kubernetes_service_account.alb_controller
   ]
 }

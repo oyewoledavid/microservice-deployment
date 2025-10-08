@@ -6,7 +6,7 @@ metadata:
     name: catalogue
   namespace: sock-shop
 spec:
-  replicas: {{ .Values.catalogue.replicaCount }}
+  replicas: {{.Values.catalogue.replicaCount}}
   selector:
     matchLabels:
       name: catalogue
@@ -16,41 +16,41 @@ spec:
         name: catalogue
     spec:
       containers:
-      - name: catalogue
-        image: "{{ .Values.catalogue.image.repository }}:{{ .Values.catalogue.image.tag }}"
-        imagePullPolicy: {{ .Values.catalogue.image.pullPolicy }}
-        command: ["/app"]
-        args:
-        - -port=80
-        resources:
-          limits:
-            cpu: {{ .Values.catalogue.resources.limits.cpu }}
-            memory: {{ .Values.catalogue.resources.limits.memory }}
-          requests:
-            cpu: {{ .Values.catalogue.resources.requests.cpu }}
-            memory: {{ .Values.catalogue.resources.requests.memory }}
-        ports:
-        - containerPort: {{ .Values.catalogue.service.targetPort }}
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 10001
-          capabilities:
-            drop:
-              - all
-            add:
-              - NET_BIND_SERVICE
-          readOnlyRootFilesystem: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: {{ .Values.catalogue.service.targetPort }}
-          initialDelaySeconds: 300
-          periodSeconds: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: {{ .Values.catalogue.service.targetPort }}
-          initialDelaySeconds: 180
-          periodSeconds: 3
+        - name: catalogue
+          image: "{{ .Values.catalogue.image.repository }}:{{ .Values.catalogue.image.tag }}"
+          imagePullPolicy: {{.Values.catalogue.image.pullPolicy}}
+          command: ["/app"]
+          args:
+            - -port=80
+          resources:
+            limits:
+              cpu: {{.Values.catalogue.resources.limits.cpu}}
+              memory: {{.Values.catalogue.resources.limits.memory}}
+            requests:
+              cpu: {{.Values.catalogue.resources.requests.cpu}}
+              memory: {{.Values.catalogue.resources.requests.memory}}
+          ports:
+            - containerPort: {{.Values.catalogue.service.targetPort}}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+            readOnlyRootFilesystem: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{.Values.catalogue.service.targetPort}}
+            initialDelaySeconds: 300
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{.Values.catalogue.service.targetPort}}
+            initialDelaySeconds: 180
+            periodSeconds: 3
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux

@@ -6,7 +6,7 @@ metadata:
     name: user
   namespace: sock-shop
 spec:
-  replicas: {{ .Values.user.replicaCount }}
+  replicas: {{.Values.user.replicaCount}}
   selector:
     matchLabels:
       name: user
@@ -16,42 +16,42 @@ spec:
         name: user
     spec:
       containers:
-      - name: user
-        image: "{{ .Values.user.image.repository }}:{{ .Values.user.image.tag }}"
-        imagePullPolicy: {{ .Values.user.image.pullPolicy }}
-        resources:
-          limits:
-            cpu: {{ .Values.user.resources.limits.cpu }}
-            memory: {{ .Values.user.resources.limits.memory }}
-          requests:
-            cpu: {{ .Values.user.resources.requests.cpu }}
-            memory: {{ .Values.user.resources.requests.memory }}
-        ports:
-        - containerPort: {{ .Values.user.service.targetPort }}
-          name: http
-        env:
-        - name: mongo
-          value: user-db:27017
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 10001
-          capabilities:
-            drop:
-              - all
-            add:
-              - NET_BIND_SERVICE
-          readOnlyRootFilesystem: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: {{ .Values.user.service.port }}
-          initialDelaySeconds: 300
-          periodSeconds: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: {{ .Values.user.service.port }}
-          initialDelaySeconds: 180
-          periodSeconds: 3
+        - name: user
+          image: "{{ .Values.user.image.repository }}:{{ .Values.user.image.tag }}"
+          imagePullPolicy: {{.Values.user.image.pullPolicy}}
+          resources:
+            limits:
+              cpu: {{.Values.user.resources.limits.cpu}}
+              memory: {{.Values.user.resources.limits.memory}}
+            requests:
+              cpu: {{.Values.user.resources.requests.cpu}}
+              memory: {{.Values.user.resources.requests.memory}}
+          ports:
+            - containerPort: {{.Values.user.service.targetPort}}
+              name: http
+          env:
+            - name: mongo
+              value: user-db:27017
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+            readOnlyRootFilesystem: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{.Values.user.service.port}}
+            initialDelaySeconds: 300
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{.Values.user.service.port}}
+            initialDelaySeconds: 180
+            periodSeconds: 3
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux

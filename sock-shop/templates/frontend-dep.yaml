@@ -4,7 +4,7 @@ metadata:
   name: frontend
   namespace: sock-shop
 spec:
-  replicas: {{ .Values.frontend.replicaCount }}
+  replicas: {{.Values.frontend.replicaCount}}
   selector:
     matchLabels:
       name: frontend
@@ -14,39 +14,39 @@ spec:
         name: frontend
     spec:
       containers:
-      - name: frontend
-        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
-        resources:
-          limits:
-            cpu: {{ .Values.frontend.resources.limits.cpu }}
-            memory: {{ .Values.frontend.resources.limits.memory }}
-          requests:
-            cpu: {{ .Values.frontend.resources.requests.cpu }}
-            memory: {{ .Values.frontend.resources.requests.memory }}
-        ports:
-        - containerPort: {{ .Values.frontend.service.targetPort }}
-        env:
-        - name: SESSION_REDIS
-          value: "true"
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 10001
-          capabilities:
-            drop:
-              - all
-          readOnlyRootFilesystem: true
-        livenessProbe:
-          httpGet:
-            path: /
-            port: {{ .Values.frontend.service.targetPort }}
-          initialDelaySeconds: 300
-          periodSeconds: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: {{ .Values.frontend.service.targetPort }}
-          initialDelaySeconds: 30
-          periodSeconds: 3
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{.Values.frontend.image.pullPolicy}}
+          resources:
+            limits:
+              cpu: {{.Values.frontend.resources.limits.cpu}}
+              memory: {{.Values.frontend.resources.limits.memory}}
+            requests:
+              cpu: {{.Values.frontend.resources.requests.cpu}}
+              memory: {{.Values.frontend.resources.requests.memory}}
+          ports:
+            - containerPort: {{.Values.frontend.service.targetPort}}
+          env:
+            - name: SESSION_REDIS
+              value: "true"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+            readOnlyRootFilesystem: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{.Values.frontend.service.targetPort}}
+            initialDelaySeconds: 300
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{.Values.frontend.service.targetPort}}
+            initialDelaySeconds: 30
+            periodSeconds: 3
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux

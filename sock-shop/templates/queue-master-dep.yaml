@@ -6,7 +6,7 @@ metadata:
     name: queue-master
   namespace: sock-shop
 spec:
-  replicas: {{ .Values.queueMaster.replicaCount }}
+  replicas: {{.Values.queueMaster.replicaCount}}
   selector:
     matchLabels:
       name: queue-master
@@ -16,20 +16,20 @@ spec:
         name: queue-master
     spec:
       containers:
-      - name: queue-master
-        image: "{{ .Values.queueMaster.image.repository }}:{{ .Values.queueMaster.image.tag }}"
-        imagePullPolicy: {{ .Values.queueMaster.image.pullPolicy }}
-        env:
-         - name: JAVA_OPTS
-           value: -Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false
-        resources:
-          limits:
-            cpu: {{ .Values.queueMaster.resources.limits.cpu }}
-            memory: {{ .Values.queueMaster.resources.limits.memory }}
-          requests:
-            cpu: {{ .Values.queueMaster.resources.requests.cpu }}
-            memory: {{ .Values.queueMaster.resources.requests.memory }}
-        ports:
-        - containerPort: {{ .Values.queueMaster.service.targetPort }}
+        - name: queue-master
+          image: "{{ .Values.queueMaster.image.repository }}:{{ .Values.queueMaster.image.tag }}"
+          imagePullPolicy: {{.Values.queueMaster.image.pullPolicy}}
+          env:
+            - name: JAVA_OPTS
+              value: -Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false
+          resources:
+            limits:
+              cpu: {{.Values.queueMaster.resources.limits.cpu}}
+              memory: {{.Values.queueMaster.resources.limits.memory}}
+            requests:
+              cpu: {{.Values.queueMaster.resources.requests.cpu}}
+              memory: {{.Values.queueMaster.resources.requests.memory}}
+          ports:
+            - containerPort: {{.Values.queueMaster.service.targetPort}}
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux

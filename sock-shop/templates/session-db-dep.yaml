@@ -7,7 +7,7 @@ metadata:
     name: session-db
   namespace: sock-shop
 spec:
-  replicas: {{ .Values.session.replicaCount }}
+  replicas: {{.Values.session.replicaCount}}
   selector:
     matchLabels:
       name: session-db
@@ -19,19 +19,19 @@ spec:
         prometheus.io.scrape: "false"
     spec:
       containers:
-      - name: session-db
-        image: redis:alpine
-        ports:
-        - name: redis
-          containerPort: {{ .Values.session.service.targetPort }}
-        securityContext:
-          capabilities:
-            drop:
-              - all
-            add:
-              - CHOWN
-              - SETGID
-              - SETUID
-          readOnlyRootFilesystem: true
+        - name: session-db
+          image: redis:alpine
+          ports:
+            - name: redis
+              containerPort: {{.Values.session.service.targetPort}}
+          securityContext:
+            capabilities:
+              drop:
+                - all
+              add:
+                - CHOWN
+                - SETGID
+                - SETUID
+            readOnlyRootFilesystem: true
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
