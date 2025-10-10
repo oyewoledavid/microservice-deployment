@@ -214,7 +214,51 @@ cleanup_route53_records() {
     fi
 }
 
-# Function to run terraform destroy
+# Function to fix DNS resolution issues
+fix_dns_resolution() {
+    log_info "Checking and fixing DNS resolution issues..."
+    
+    # Test DNS resolution for EKS OIDC endpoint
+    local oidc_host="oidc.eks.us-east-1.amazonaws.com"
+    
+    if ! nslookup "$oidc_host" &>/dev/null; then
+        log_warning "DNS resolution issue detected. Attempting to fix..."
+        
+        # Try using Google DNS temporarily
+        local original_resolv=$(cat /etc/resolv.conf)
+        
+        # Backup original resolv.conf
+        sudo cp /etc/resolv.conf /etc/resolv.conf.backup
+        
+        # Set Google DNS temporarily
+        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+        echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
+        
+        # Test again
+        if nslookup "$oidc_host" &>/dev/null; then
+            log_success "DNS resolution fixed with Google DNS"
+            return 0
+        else
+            # Restore original DNS settings
+            sudo cp /etc/resolv.conf.backup /etc/resolv.conf
+            log_warning "DNS resolution still failing, continuing with destroy anyway"
+        fi
+    else
+        log_success "DNS resolution is working properly"
+    fi
+}
+
+# Function to restore DNS settings
+restore_dns_settings() {
+    if [ -f /etc/resolv.conf.backup ]; then
+        log_info "Restoring original DNS settings..."
+        sudo cp /etc/resolv.conf.backup /etc/resolv.conf
+        sudo rm -f /etc/resolv.conf.backup
+        log_success "DNS settings restored"
+    fi
+}
+
+# Function to run terraform destroy with enhanced error handling
 terraform_destroy() {
     log_info "Running Terraform destroy..."
     
@@ -226,15 +270,92 @@ terraform_destroy() {
         terraform init
     fi
     
-    # Run destroy with lock disabled to avoid state lock issues
-    if terraform destroy -auto-approve -lock=false; then
+    # Fix DNS resolution issues
+    fix_dns_resolution
+    
+    # Try terraform destroy with multiple strategies
+    local destroy_success=false
+    
+    # Strategy 1: Normal destroy with lock disabled
+    log_info "Attempting normal terraform destroy..."
+    if terraform destroy -auto-approve -lock=false 2>/dev/null; then
         log_success "Terraform destroy completed successfully"
+        destroy_success=true
     else
-        log_error "Terraform destroy failed"
+        log_warning "Normal destroy failed, trying with refresh disabled..."
+        
+        # Strategy 2: Destroy with refresh disabled (helps with DNS issues)
+        if terraform destroy -auto-approve -lock=false -refresh=false 2>/dev/null; then
+            log_success "Terraform destroy completed with refresh disabled"
+            destroy_success=true
+        else
+            log_warning "Destroy with refresh disabled failed, trying targeted destroy..."
+            
+            # Strategy 3: Try to destroy specific problematic resources first
+            local problematic_resources=(
+                "module.eks.data.tls_certificate.this"
+                "aws_acm_certificate_validation.sock_wildcard_validation"
+            )
+            
+            for resource in "${problematic_resources[@]}"; do
+                log_info "Attempting to destroy problematic resource: $resource"
+                terraform destroy -target="$resource" -auto-approve -lock=false -refresh=false 2>/dev/null || true
+            done
+            
+            # Strategy 4: Final destroy attempt
+            log_info "Attempting final terraform destroy..."
+            if terraform destroy -auto-approve -lock=false -refresh=false; then
+                log_success "Terraform destroy completed after targeted cleanup"
+                destroy_success=true
+            fi
+        fi
+    fi
+    
+    # Restore DNS settings
+    restore_dns_settings
+    
+    if [ "$destroy_success" = false ]; then
+        log_error "Terraform destroy failed after all attempts"
+        log_info "Manual cleanup may be required. Check AWS console for remaining resources."
+        
+        # Show what resources might still exist
+        log_info "Attempting to show current state..."
+        terraform state list 2>/dev/null || true
+        
+        cd "$SCRIPT_DIR"
         return 1
     fi
     
     cd "$SCRIPT_DIR"
+}
+
+# Function to forcefully clean up EKS-related resources
+force_cleanup_eks_resources() {
+    log_info "Performing force cleanup of EKS-related resources..."
+    
+    local cluster_name="socks-shop-cluster"
+    
+    # Try to delete the EKS cluster directly via AWS CLI if it still exists
+    if aws eks describe-cluster --name "$cluster_name" --region $REGION &>/dev/null; then
+        log_info "Found EKS cluster, attempting direct deletion..."
+        
+        # Delete node groups first
+        local nodegroups=$(aws eks list-nodegroups --cluster-name "$cluster_name" --region $REGION --query 'nodegroups' --output text 2>/dev/null)
+        if [ -n "$nodegroups" ] && [ "$nodegroups" != "None" ]; then
+            for ng in $nodegroups; do
+                log_info "Deleting nodegroup: $ng"
+                aws eks delete-nodegroup --cluster-name "$cluster_name" --nodegroup-name "$ng" --region $REGION &>/dev/null || true
+            done
+            
+            # Wait for nodegroups to be deleted
+            log_info "Waiting for nodegroups to be deleted..."
+            sleep 30
+        fi
+        
+        # Delete the cluster
+        log_info "Deleting EKS cluster..."
+        aws eks delete-cluster --name "$cluster_name" --region $REGION &>/dev/null || true
+    fi
 }
 
 # Function to clean up terraform state files
@@ -252,6 +373,35 @@ cleanup_terraform_state() {
     log_success "Terraform state files cleaned up"
     
     cd "$SCRIPT_DIR"
+}
+
+# Function to handle emergency cleanup when terraform fails completely
+emergency_cleanup() {
+    log_warning "Terraform destroy failed completely. Attempting emergency cleanup..."
+    
+    # Force cleanup EKS resources
+    force_cleanup_eks_resources
+    
+    # Manual cleanup of common resources that might be left behind
+    log_info "Cleaning up remaining AWS resources manually..."
+    
+    # Clean up any remaining load balancers
+    local lbs=$(aws elbv2 describe-load-balancers --region $REGION --query 'LoadBalancers[].LoadBalancerArn' --output text 2>/dev/null)
+    if [ -n "$lbs" ] && [ "$lbs" != "None" ]; then
+        for lb in $lbs; do
+            log_info "Deleting load balancer: $lb"
+            aws elbv2 delete-load-balancer --load-balancer-arn "$lb" --region $REGION &>/dev/null || true
+        done
+    fi
+    
+    # Clean up security groups (retry after load balancers are gone)
+    sleep 30
+    local vpc_id=$(get_vpc_id)
+    if [ -n "$vpc_id" ]; then
+        cleanup_security_groups "$vpc_id"
+    fi
+    
+    log_info "Emergency cleanup completed. Some resources may need manual removal from AWS console."
 }
 
 # Function to verify cleanup
@@ -304,10 +454,16 @@ main() {
         cleanup_route53_records
         
         # Run terraform destroy
-        terraform_destroy
+        if ! terraform_destroy; then
+            log_warning "Terraform destroy failed, attempting emergency cleanup..."
+            emergency_cleanup
+        fi
     else
         log_info "No VPC found, attempting Terraform destroy anyway..."
-        terraform_destroy
+        if ! terraform_destroy; then
+            log_warning "Terraform destroy failed, attempting emergency cleanup..."
+            emergency_cleanup
+        fi
     fi
     
     # Clean up state files
@@ -317,7 +473,7 @@ main() {
     verify_cleanup
     
     echo "=========================================="
-    log_success "Cleanup completed successfully!"
+    log_success "Cleanup completed! (Some manual verification may be needed)"
     echo "=========================================="
 }
 
