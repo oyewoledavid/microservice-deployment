@@ -129,17 +129,3 @@ kubectl apply -f prometheus-ingress.yaml -n monitoring
 - run `kubectl logs -n external-dns deploy/external-dns | grep grafana.sock.blessedc.org -A3` to check external DNS has created record
 Grafana and prometheus will not be available via HTTPS on grafana.sock.blessedc.org and prometheus.sock.blessedc.org respectively
 
-
-cluster_endpoint = "https://31B9A97ECF46CB8F9831C3147A1DA771.gr7.us-east-1.eks.amazonaws.com"
-cluster_name = "socks-shop-cluster"
-cluster_security_group_id = "sg-0423799aa9f7da4b1"
-oidc_provider_arn = "arn:aws:iam::354767057562:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/31B9A97ECF46CB8F9831C3147A1DA771"
-sock_name_servers = tolist([
-  "ns-1496.awsdns-59.org",
-  "ns-2024.awsdns-61.co.uk",
-  "ns-405.awsdns-50.com",
-  "ns-676.awsdns-20.net",
-])
-sock_zone_id = "Z0444346AKNIM5H9HVBI"
-
-acm_certificate_arn = "arn:aws:acm:us-east-1:354767057562:certificate/a73d9daf-be3c-44d8-99ee-1e2241a7d643"
